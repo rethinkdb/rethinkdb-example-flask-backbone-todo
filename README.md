@@ -24,12 +24,18 @@ One missing feature we've left out as an exercise is making this Flask todo app 
 # Installation #
 
 ```
-git clone 
+git clone git://github.com/rethinkdb/rethinkdb-example-flask-backbone-todo.git
 pip install Flask
 pip install rethinkdb
 ```
 
 _Note_: If you don't have RethinkDB installed, you can follow these instructions to get it up and running. For this demo we'll also need to create a new database and table.
+
+# Running #
+
+```
+python todo.py
+```
 
 # Code #
 
@@ -101,5 +107,5 @@ A different way to implement this is by submitting a special `PUT` request and t
 code
 ```
 
-
+#  #
 
