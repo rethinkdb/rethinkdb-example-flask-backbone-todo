@@ -41,6 +41,12 @@ python todo.py
 
 Open a browser: <http://localhost:5000/>
 
+# Running #
+
+```
+python todo.py
+```
+
 # Code #
 
 ## Managing connections to RethinkDB ##
@@ -160,5 +166,4 @@ def update_all():
 
 *   **Using a connection per request**
 *   **Batched iterators**
-
 
