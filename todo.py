@@ -1,3 +1,9 @@
+#
+# Licensed under the MIT license: http://opensource.org/licenses/mit-license.php
+#
+# Copyright (c) 2012 RethinkDB
+#
+
 from flask import Flask, g, jsonify, render_template, request
 import json
 from rethinkdb import r
