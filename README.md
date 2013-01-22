@@ -39,19 +39,14 @@ Flask provides an easy way to test your application:
 python todo.py
 ```
 
-Open a browser: <http://localhost:5000/>
+Then open a browser: <http://localhost:5000/>
 
-# Running #
-
-```
-python todo.py
-```
 
 # Code #
 
 ## Managing connections to RethinkDB ##
 
-The pattern we're using for managing database connections is to have **a connection per request**. We're using Flask's `@app.before_request` and `@app.teardown_request` for opening a database connection and closing it respectively:
+The pattern we're using for managing database connections is to have **a connection per request**. We're using Flask's `@app.before_request` and `@app.teardown_request` for [opening a database connection](http://www.rethinkdb.com/api/#py:accessing_rql-connect) and [closing it](http://www.rethinkdb.com/api/#py:accessing_rql-close) respectively:
 
 ```python
 @app.before_request
@@ -67,23 +62,25 @@ def teardown_request(exception):
     g.rdb_conn.close()
 ``` 
 
+
+
 ## Listing existing todos ##
 
-To list existing tasks, we're using as the `/todos` endpoint. We retrieve the list of existing todos using `r.table('todos')`:
+To list existing tasks, we are using `r.table('todos') in response to a GET request`:
 
 ```python
 @app.route("/todos", methods=['GET'], defaults={'todo_id': None})
 def get_todos(todo_id):
-    if todo_id is None:
-        selection = list(todo_table.run(g.rdb_conn))
-    else:
-        selection = todo_table.get(todo_id).run(g.rdb_conn)
+	...
+    selection = list(todo_table.run(g.rdb_conn))
     return json.dumps(selection)
 ```
 
+In RethinkDB, the shortcut `table.run(connection)` returns a batched iterator over all rows in the table.
+
 ## Creating a new task ##
 
-By posting a JSON objects to `/todos` and using `todo_table.insert` we can create a new task:
+We will create a new task in response to a POST request to `/todos` with a JSON payload using [`table.insert`](http://www.rethinkdb.com/api/#py:writing_data-insert):
 
 ```python
 @app.route("/todos", methods=['POST'])
@@ -92,27 +89,33 @@ def new_todo():
     return jsonify(id=inserted['generated_keys'][0])
 ```
 
-The `insert` operation returns a single object 
+The `insert` operation returns a single object specifying the number of successfully created objects and their corresponding IDs:
+
+```javascript
+{
+	"inserted": 1 ,
+	"errors": 0 ,
+	"generated_keys": ["773666ac-841a-44dc-97b7-b6f3931e9b9f"]
+}
+```
 
 ## Retrieving a single task ##
 
-Every task has a unique id allowing us to retrieve a . 
+When creating a new task, each gets assigned an unique ID. Then we could retrieve a specific task by GETing `/todos/<todo_id>`. The corresponding Re
 
 ```
 @app.route("/todos", methods=['GET'], defaults={'todo_id': None})
 def get_todos(todo_id):
-    if todo_id is None:
-        selection = list(todo_table.run(g.rdb_conn))
-    else:
-        selection = todo_table.get(todo_id).run(g.rdb_conn)
-    return json.dumps(selection)
+	...
+	selection = todo_table.get(todo_id).run(g.rdb_conn)
+	return json.dumps(selection)
 ```
 
 Using a task's ID will prove more useful when updating, marking as complete, or deleting it.
 
 ## Editing a task ##
 
-Updating a task is performed on a `PUT` request. To save the change we'll do a `replace`:
+Updating a task is performed on a `PUT` request. To save the change we'll do a [`replace`](http://www.rethinkdb.com/api/#py:writing_data-replace):
 
 ```python
 @app.route("/todos/<string:todo_id>", methods=['PUT'])
@@ -120,18 +123,19 @@ def update_todo(todo_id):
     return jsonify(todo_table.get(todo_id).replace(request.json).run(g.rdb_conn))
 ```
 
-
-If you'd like the update operation to be a `PATCH`, you can use instead `update` for saving the merged data:
+If you'd like the update operation to happen as the result of a `PATCH` request (carrying only the updated fields), you can use instead [`update`](http://www.rethinkdb.com/api/#py:writing_data-update) for saving the merged data:
 
 ```python
 @app.route("/todos/<string:todo_id>", methods=['PUT'])
 def update_todo(todo_id):
-    return jsonify(todo_table.get(todo_id).replace(request.json).run(g.rdb_conn))
+    return jsonify(todo_table.get(todo_id).update(request.json).run(g.rdb_conn))
 ```
+
+Both `replace` and `update` operations can be run against multiple rows.
 
 ## Marking a task as completed ##
 
-Marking a task as completed is similar to editing it. The updated version with the `done` attribute turned on replaces the older version:
+Marking a task as completed is similar to editing it. The updated version with the `done` attribute turned on [replaces](http://www.rethinkdb.com/api/#py:writing_data-replace) the older version:
 
 ```python
 @app.route("/todos/<string:todo_id>", methods=['PUT'])
@@ -141,7 +145,7 @@ def update_todo(todo_id):
 
 ## Deleting a task ##
 
-For deleting a task we'll trigger a database `delete` operation upon a `DELETE /todos/<ID>` request:
+For deleting a task we'll trigger a database [`delete`](http://www.rethinkdb.com/api/#py:writing_data-delete) operation on a `DELETE /todos/<todo_id>` request:
 
 ```python
 @app.route("/todos/<string:todo_id>", methods=['DELETE'])
@@ -164,6 +168,23 @@ def update_all():
 
 # Best practices #
 
-*   **Using a connection per request**
-*   **Batched iterators**
+*   **Managing connections: a connection per request**
 
+	The RethinkDB server doesn't use a thread-per-connnection approach so opening connections per request will not slow down your database.
+	
+*   **Fetching multiple rows: batched iterators**
+
+	When fetching multiple rows from a table, RethinkDB returns a batched iterator containing initially a subset of the complete result. Once the end of the current batch was reached, a new batch is retrieved from the server. Anyways from a coding point of view this is transparent:
+	
+	```python
+	for result in r.table('todos').run(g.rdb_conn):
+		print result
+	```
+	
+*	`replace` vs `update`
+
+	Both `replace` and `update` operations can be used to modify a single row or multiple row. Their behavior is different though: `replace` will completely replace the existing rows
+
+# License #
+
+This demo application is licensed under the MIT license: <http://opensource.org/licenses/mit-license.php>
