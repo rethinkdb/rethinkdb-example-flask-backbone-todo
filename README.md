@@ -101,7 +101,7 @@ The `insert` operation returns a single object specifying the number of successf
 
 ## Retrieving a single task ##
 
-When creating a new task, each gets assigned an unique ID. Then we could retrieve a specific task by GETing `/todos/<todo_id>`. The corresponding Re
+When creating a new task, each gets assigned an unique ID. Then we could retrieve a specific task by GETing `/todos/<todo_id>`. For accessing a single row by its id we use [`table.get`](http://www.rethinkdb.com/api/#py:selecting_data-get):
 
 ```
 @app.route("/todos", methods=['GET'], defaults={'todo_id': None})
@@ -123,7 +123,7 @@ def update_todo(todo_id):
     return jsonify(todo_table.get(todo_id).replace(request.json).run(g.rdb_conn))
 ```
 
-If you'd like the update operation to happen as the result of a `PATCH` request (carrying only the updated fields), you can use instead [`update`](http://www.rethinkdb.com/api/#py:writing_data-update) for saving the merged data:
+If you'd like the update operation to happen as the result of a `PATCH` request (carrying only the updated fields), you can use instead [`update`](http://www.rethinkdb.com/api/#py:writing_data-update) which will merge the database stored JSON object with the new one:
 
 ```python
 @app.route("/todos/<string:todo_id>", methods=['PUT'])
@@ -135,7 +135,7 @@ Both `replace` and `update` operations can be run against multiple rows.
 
 ## Marking a task as completed ##
 
-Marking a task as completed is similar to editing it. The updated version with the `done` attribute turned on [replaces](http://www.rethinkdb.com/api/#py:writing_data-replace) the older version:
+Marking a task as completed is similar to editing it. The updated object with the `done` attribute changed [replacing](http://www.rethinkdb.com/api/#py:writing_data-replace) the older one:
 
 ```python
 @app.route("/todos/<string:todo_id>", methods=['PUT'])
@@ -162,8 +162,8 @@ A different way to implement this is by submitting a special `PUT` request and t
 ```
 @app.route("/todos", methods=['PUT'])
 def update_all():
-	request.args.get('key', '')
-	todo_table.update({'done: True})
+	is_done = True if request.args.get('done', '0') == '1' else False
+	todo_table.update({'done': is_done})
 ```
 
 # Best practices #
@@ -183,7 +183,10 @@ def update_all():
 	
 *	`replace` vs `update`
 
-	Both `replace` and `update` operations can be used to modify a single row or multiple row. Their behavior is different though: `replace` will completely replace the existing rows
+	Both `replace` and `update` operations can be used to modify one or multiple rows. Their behavior is different: 
+	
+	*   `replace` will completely replace the existing rows with new values
+	*   `update` will merge existing rows with the new values
 
 # License #
 
