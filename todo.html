@@ -26,8 +26,10 @@
 <p>For details about the complete stack, installation, and running see the <a href="https://github.com/rethinkdb/rethinkdb-example-flask-backbone-todo">README</a>.</p>
       </td>
       <td class=code>
-        <div class='highlight'><pre><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">render_template</span><span class="p">,</span> <span class="n">request</span>
-<span class="kn">import</span> <span class="nn">json</span>
+        <div class='highlight'><pre><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+
+<span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">render_template</span><span class="p">,</span> <span class="n">request</span>
 <span class="kn">from</span> <span class="nn">rethinkdb</span> <span class="kn">import</span> <span class="n">r</span></pre></div>
       </td>
     </tr>
@@ -39,8 +41,8 @@
         <p>RethinkDB connection details:</p>
       </td>
       <td class=code>
-        <div class='highlight'><pre><span class="n">RDB_HOST</span> <span class="o">=</span> <span class="s">&#39;localhost&#39;</span>
-<span class="n">RDB_PORT</span> <span class="o">=</span> <span class="mi">28015</span></pre></div>
+        <div class='highlight'><pre><span class="n">RDB_HOST</span> <span class="o">=</span> <span class="s">&#39;192.168.0.7&#39;</span>
+<span class="n">RDB_PORT</span> <span class="o">=</span> <span class="mi">38015</span></pre></div>
       </td>
     </tr>
     <tr id='section-Setting_up_the_app_database'>
@@ -61,13 +63,19 @@
         </div>
         <p>The app will use a table <code>todos</code> in the <code>todoapp</code> database. 
 We&rsquo;ll create these here using <a href="http://www.rethinkdb.com/api/#py:manipulating_databases-db_create"><code>db_create</code></a>
-and <a href="http://www.rethinkdb.com/api/#py:manipulating_tables-table_create"><code>table_create</code></a>.</p>
+and <a href="http://www.rethinkdb.com/api/#py:manipulating_tables-table_create"><code>table_create</code></a>.    </p>
       </td>
       <td class=code>
-        <div class='highlight'><pre><span class="k">def</span> <span class="nf">setup</span><span class="p">():</span>
+        <div class='highlight'><pre><span class="k">def</span> <span class="nf">dbSetup</span><span class="p">():</span>
     <span class="n">connection</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">RDB_HOST</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">RDB_PORT</span><span class="p">)</span>
-    <span class="n">connection</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">db_create</span><span class="p">(</span><span class="s">&#39;todoapp&#39;</span><span class="p">))</span>
-    <span class="n">connection</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">db</span><span class="p">(</span><span class="s">&#39;todoapp&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">table_create</span><span class="p">(</span><span class="s">&#39;todos&#39;</span><span class="p">))</span></pre></div>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">connection</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">db_create</span><span class="p">(</span><span class="s">&#39;todoapp&#39;</span><span class="p">))</span>
+        <span class="n">connection</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">db</span><span class="p">(</span><span class="s">&#39;todoapp&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">table_create</span><span class="p">(</span><span class="s">&#39;todos&#39;</span><span class="p">))</span>
+        <span class="k">print</span> <span class="s">&#39;Database setup completed. Now run the app without --setup.&#39;</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s">&#39;App database already exists. Run the app without --setup.&#39;</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">connection</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></pre></div>
       </td>
     </tr>
     <tr id='section-5'>
@@ -193,7 +201,7 @@ For accessing a single row by its id we use <a href="http://www.rethinkdb.com/ap
       </td>
       <td class=code>
         <div class='highlight'><pre><span class="nd">@app.route</span><span class="p">(</span><span class="s">&quot;/todos/&lt;string:todo_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;GET&#39;</span><span class="p">])</span>
-<span class="k">def</span> <span class="nf">get_todos</span><span class="p">(</span><span class="n">todo_id</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_todo</span><span class="p">(</span><span class="n">todo_id</span><span class="p">):</span>
     <span class="n">todo</span> <span class="o">=</span> <span class="n">todo_table</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">todo_id</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">rdb_conn</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">todo</span><span class="p">)</span></pre></div>
       </td>
@@ -234,7 +242,7 @@ which will merge the database stored JSON object with the new one.</p>
       </td>
       <td class=code>
         <div class='highlight'><pre><span class="nd">@app.route</span><span class="p">(</span><span class="s">&quot;/todos/&lt;string:todo_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;PATCH&#39;</span><span class="p">])</span>
-<span class="k">def</span> <span class="nf">update_todo</span><span class="p">(</span><span class="n">todo_id</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">patch_todo</span><span class="p">(</span><span class="n">todo_id</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">todo_table</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">todo_id</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">json</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">rdb_conn</span><span class="p">))</span></pre></div>
       </td>
     </tr>
@@ -268,7 +276,14 @@ on a <code>DELETE /todos/&lt;todo_id&gt;</code> request.</p>
 
 
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
-    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></pre></div>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s">&#39;Run the Flask todo app&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--setup&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;run_setup&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">run_setup</span><span class="p">:</span>
+        <span class="n">dbSetup</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span></pre></div>
       </td>
     </tr>
     <tr id='section-Best_practices'>
@@ -276,13 +291,13 @@ on a <code>DELETE /todos/&lt;todo_id&gt;</code> request.</p>
         <div class="pilwrap">
           <a class="pilcrow" href="#section-Best_practices">&#182;</a>
         </div>
-        <h2>Best practices</h2>
+        <h3>Best practices</h3>
 
-<p><strong>Managing connections: a connection per request</strong></p>
+<h4>Managing connections: a connection per request</h4>
 
 <p>The RethinkDB server doesn&rsquo;t use a thread-per-connnection approach so opening connections per request will not slow down your database.</p>
 
-<p><strong>Fetching multiple rows: batched iterators</strong></p>
+<h4>Fetching multiple rows: batched iterators</h4>
 
 <p>When fetching multiple rows from a table, RethinkDB returns a batched iterator containing initially a subset of the complete result. 
 Once the end of the current batch is reached, a new batch is retrieved from the server. From a coding point of view this is transparent:</p>
@@ -291,7 +306,7 @@ Once the end of the current batch is reached, a new batch is retrieved from the 
     print result
 </code></pre>
 
-<p><strong><code>replace</code> vs <code>update</code></strong></p>
+<h4><code>replace</code> vs <code>update</code></h4>
 
 <p>Both <code>replace</code> and <code>update</code> operations can be used to modify one or multiple rows. Their behavior is different: </p>
 

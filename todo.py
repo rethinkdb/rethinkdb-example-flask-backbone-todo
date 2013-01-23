@@ -1,25 +1,34 @@
 #
 # A demo web application in the spirit of [TodoMVC](http://addyosmani.github.com/todomvc/) showing how to use **RethinkDB as a backend for Flask applications**.
 #
-# For details about the complete stack, installation, and running see the [README](https://github.com/rethinkdb/rethinkdb-example-flask-backbone-todo).
+# For details about the complete stack, installation, and running the app see the [README](https://github.com/rethinkdb/rethinkdb-example-flask-backbone-todo).
 #
-from flask import Flask, g, jsonify, render_template, request
 import json
+import argparse
+
+from flask import Flask, g, jsonify, render_template, request
 from rethinkdb import r
 
 # RethinkDB connection details:
-RDB_HOST = 'localhost'
-RDB_PORT = 28015
+RDB_HOST = '192.168.0.7'
+RDB_PORT = 38015
 
 #### Setting up the app database
 
 # The app will use a table `todos` in the `todoapp` database. 
 # We'll create these here using [`db_create`](http://www.rethinkdb.com/api/#py:manipulating_databases-db_create)
-# and [`table_create`](http://www.rethinkdb.com/api/#py:manipulating_tables-table_create).
-def setup():
+# and [`table_create`](http://www.rethinkdb.com/api/#py:manipulating_tables-table_create).    
+def dbSetup():
     connection = r.connect(host=RDB_HOST, port=RDB_PORT)
-    connection.run(r.db_create('todoapp'))
-    connection.run(r.db('todoapp').table_create('todos'))
+    try:
+        connection.run(r.db_create('todoapp'))
+        connection.run(r.db('todoapp').table_create('todos'))
+        print 'Database setup completed. Now run the app without --setup.'
+    except Exception:
+        print 'App database already exists. Run the app without --setup.'
+    finally:
+        connection.close()
+
 
 # We keep a reference to the `todos` table as we'll use it everywhere:
 todo_table = r.db('todoapp').table('todos')
@@ -72,7 +81,7 @@ def new_todo():
 #
 # Using a task's ID will prove more useful when updating, marking as complete, or deleting it.
 @app.route("/todos/<string:todo_id>", methods=['GET'])
-def get_todos(todo_id):
+def get_todo(todo_id):
     todo = todo_table.get(todo_id).run(g.rdb_conn)
     return json.dumps(todo)
 
@@ -88,7 +97,7 @@ def update_todo(todo_id):
 # you can use instead [`update`](http://www.rethinkdb.com/api/#py:writing_data-update) 
 # which will merge the database stored JSON object with the new one.
 @app.route("/todos/<string:todo_id>", methods=['PATCH'])
-def update_todo(todo_id):
+def patch_todo(todo_id):
     return jsonify(todo_table.get(todo_id).update(request.json).run(g.rdb_conn))
 
 
@@ -106,16 +115,23 @@ def show_todos():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    parser = argparse.ArgumentParser(description='Run the Flask todo app')
+    parser.add_argument('--setup', dest='run_setup', action='store_true')
+
+    args = parser.parse_args()
+    if args.run_setup:
+        dbSetup()
+    else:
+        app.run(debug=True)
 
 
-# ## Best practices ##
+# ### Best practices ###
 #
-# **Managing connections: a connection per request**
+# #### Managing connections: a connection per request ####
 #
 # The RethinkDB server doesn't use a thread-per-connnection approach so opening connections per request will not slow down your database.
-#    
-# **Fetching multiple rows: batched iterators**
+# 
+# #### Fetching multiple rows: batched iterators ####
 #
 # When fetching multiple rows from a table, RethinkDB returns a batched iterator containing initially a subset of the complete result. 
 # Once the end of the current batch is reached, a new batch is retrieved from the server. From a coding point of view this is transparent:
@@ -124,7 +140,7 @@ if __name__ == "__main__":
 #         print result
 #     
 #    
-# **`replace` vs `update`**
+# #### `replace` vs `update` ####
 #
 # Both `replace` and `update` operations can be used to modify one or multiple rows. Their behavior is different: 
 #    
