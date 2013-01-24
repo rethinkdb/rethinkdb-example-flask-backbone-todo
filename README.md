@@ -11,7 +11,7 @@ As any todo application, this one implements the following functionality:
 * Edit a todo or mark a todo as done
 * Delete a todo
 
-One missing feature we've left out as an exercise is making this Flask todo app force  users to complete their tasks. In time.
+One feature we've left out as an exercise is making this Flask todo app force  users to complete their tasks. In time.
 
 # Complete stack #
 
