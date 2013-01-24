@@ -4,20 +4,20 @@ A demo web application in the spirit of [TodoMVC](http://addyosmani.github.com/t
 
 As any todo application, this one implements the following functionality:
 
-1. Managing database connections
-*. List existing todos
-*. Create new todo
-*. Retrieve a single todo
-*. Edit a todo or mark a todo as done
-*. Delete a todo
+* Managing database connections
+* List existing todos
+* Create new todo
+* Retrieve a single todo
+* Edit a todo or mark a todo as done
+* Delete a todo
 
 One missing feature we've left out as an exercise is making this Flask todo app force  users to complete their tasks. In time.
 
 # Complete stack #
 
-*   [Flask](http://flask.pocoo.org)
-*   [Backbone](http://backbonejs.org)
-*   [RethinkDB](http://www.rethinkdb.com)
+* [Flask](http://flask.pocoo.org)
+* [Backbone](http://backbonejs.org)
+* [RethinkDB](http://www.rethinkdb.com)
 
 # Installation #
 
