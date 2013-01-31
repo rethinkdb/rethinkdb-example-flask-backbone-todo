@@ -1,25 +1,36 @@
-# A demo web application in the spirit of [TodoMVC](http://addyosmani.github.com/todomvc/) showing how to use **RethinkDB as a backend for Flask applications**.
-# For details about the complete stack, installation, and running the app see the [README](https://github.com/rethinkdb/rethinkdb-example-flask-backbone-todo).
+# A demo web application in the spirit of
+# [TodoMVC](http://addyosmani.github.com/todomvc/) showing how to use
+# **RethinkDB as a backend for Flask and Backbone.js applications**.
+#
+# For details about the complete stack, installation, and running the
+# app see the
+# [README](https://github.com/rethinkdb/rethinkdb-example-flask-backbone-todo).
 import json
 import argparse
 
 from flask import Flask, g, jsonify, render_template, request
 from rethinkdb import r
 
-# RethinkDB connection details:
-RDB_HOST = '192.168.0.7'
-RDB_PORT = 38015
+#### Connection details
+
+# We will use these settings later in the code to connect to the
+# RethinkDB server.
+RDB_HOST = 'localhost'
+RDB_PORT = 28015
+TODO_DB = 'todoapp'
 
 #### Setting up the app database
 
-# The app will use a table `todos` in the `todoapp` database. 
-# We'll create these here using [`db_create`](http://www.rethinkdb.com/api/#py:manipulating_databases-db_create)
-# and [`table_create`](http://www.rethinkdb.com/api/#py:manipulating_tables-table_create).    
+# The app will use a table `todos` in the database specified by the
+# `TODO_DB` variable.  We'll create the database and table here using
+# [`db_create`](http://www.rethinkdb.com/api/#py:manipulating_databases-db_create)
+# and
+# [`table_create`](http://www.rethinkdb.com/api/#py:manipulating_tables-table_create) commands.
 def dbSetup():
     connection = r.connect(host=RDB_HOST, port=RDB_PORT)
     try:
-        connection.run(r.db_create('todoapp'))
-        connection.run(r.db('todoapp').table_create('todos'))
+        connection.run(r.db_create(TODO_DB))
+        connection.run(r.db(TODO_DB).table_create('todos'))
         print 'Database setup completed. Now run the app without --setup.'
     except Exception:
         print 'App database already exists. Run the app without --setup.'
@@ -27,12 +38,8 @@ def dbSetup():
         connection.close()
 
 
-# We keep a reference to the `todos` table as we'll use it everywhere:
-todo_table = r.db('todoapp').table('todos')
-
 app = Flask(__name__)
 app.config.from_object(__name__)
-
 
 #### Managing connections
 
@@ -42,7 +49,7 @@ app.config.from_object(__name__)
 # [closing it](http://www.rethinkdb.com/api/#py:accessing_rql-close) respectively.
 @app.before_request
 def before_request():
-    g.rdb_conn = r.connect(host=RDB_HOST, port=RDB_PORT)
+    g.rdb_conn = r.connect(host=RDB_HOST, port=RDB_PORT, db_name=TODO_DB)
 
 @app.teardown_request
 def teardown_request(exception):
@@ -51,60 +58,76 @@ def teardown_request(exception):
 
 #### Listing existing todos
 
-# To retrieve all existing tasks, we are using [`r.table('todos')`](http://www.rethinkdb.com/api/#py:selecting_data-table) 
-# in response to a GET request. `table.run()` returns a batched iterator that we transform into a `list`.
+# To retrieve all existing tasks, we are using
+# [`r.table`](http://www.rethinkdb.com/api/#py:selecting_data-table)
+# command to query the database in response to a GET request from the
+# browser. When `table(table_name)` isn't followed by an additional
+# command, it returns all documents in the table.
+#    
+# Running the query returns an iterator that automatically streams
+# data from the server in efficient batches.
 @app.route("/todos", methods=['GET'])
 def get_todos():
-    selection = list(todo_table.run(g.rdb_conn))
+    selection = list(r.table('todos').run(g.rdb_conn))
     return json.dumps(selection)
 
 #### Creating a todo
 
-# We will create a new todo in response to a POST request to `/todos` with a JSON payload 
-# using [`table.insert`](http://www.rethinkdb.com/api/#py:writing_data-insert).
+# We will create a new todo in response to a POST request to `/todos`
+# with a JSON payload using
+# [`table.insert`](http://www.rethinkdb.com/api/#py:writing_data-insert).
 #
-# The `insert` operation returns a single object specifying the number of successfully created objects and their corresponding IDs: 
-# `{ "inserted": 1,  "errors": 0,  "generated_keys": ["773666ac-841a-44dc-97b7-b6f3931e9b9f"] }`
+# The `insert` operation returns a single object specifying the number
+# of successfully created objects and their corresponding IDs:
+# `{ "inserted": 1, "errors": 0, "generated_keys": ["773666ac-841a-44dc-97b7-b6f3931e9b9f"] }`
 @app.route("/todos", methods=['POST'])
 def new_todo():
-    inserted = todo_table.insert(request.json).run(g.rdb_conn)
+    inserted = r.table('todos').insert(request.json).run(g.rdb_conn)
     return jsonify(id=inserted['generated_keys'][0])
 
 
 #### Retrieving a single todo
 
-# When creating a new task, each gets assigned an unique ID. Then we could retrieve a specific task by GETing `/todos/<todo_id>`. 
-# For accessing a single row by its id we use [`table.get`](http://www.rethinkdb.com/api/#py:selecting_data-get).
+# Every new task gets assigned a unique ID. The browser can retrieve
+# a specific task by GETing `/todos/<todo_id>`. To query the database
+# for a single document by its ID, we use the
+# [`get`](http://www.rethinkdb.com/api/#py:selecting_data-get)
+# command.
 #
-# Using a task's ID will prove more useful when updating, marking as complete, or deleting it.
+# Using a task's ID will prove more useful when we decide to update
+# it, mark it completed, or delete it.
 @app.route("/todos/<string:todo_id>", methods=['GET'])
 def get_todo(todo_id):
-    todo = todo_table.get(todo_id).run(g.rdb_conn)
+    todo = r.table('todos').get(todo_id).run(g.rdb_conn)
     return json.dumps(todo)
 
 #### Editing/Updating a task
 
-# Updating a todo (editing it or marking it as completed) is performed on a `PUT` request. 
-# To save the updated todo we'll do a [`replace`](http://www.rethinkdb.com/api/#py:writing_data-replace).
+# Updating a todo (editing it or marking it completed) is performed on
+# a `PUT` request.  To save the updated todo we'll do a
+# [`replace`](http://www.rethinkdb.com/api/#py:writing_data-replace).
 @app.route("/todos/<string:todo_id>", methods=['PUT'])
 def update_todo(todo_id):
-    return jsonify(todo_table.get(todo_id).replace(request.json).run(g.rdb_conn))
+    return jsonify(r.table('todos').get(todo_id).replace(request.json).run(g.rdb_conn))
 
-# If you'd like the update operation to happen as the result of a `PATCH` request (carrying only the updated fields), 
-# you can use instead [`update`](http://www.rethinkdb.com/api/#py:writing_data-update) 
-# which will merge the database stored JSON object with the new one.
+# If you'd like the update operation to happen as the result of a
+# `PATCH` request (carrying only the updated fields), you can use the
+# [`update`](http://www.rethinkdb.com/api/#py:writing_data-update)
+# command, which will merge the JSON object stored in the database
+# with the new one.
 @app.route("/todos/<string:todo_id>", methods=['PATCH'])
 def patch_todo(todo_id):
-    return jsonify(todo_table.get(todo_id).update(request.json).run(g.rdb_conn))
+    return jsonify(r.table('todos').get(todo_id).update(request.json).run(g.rdb_conn))
 
 
 #### Deleting a task
 
-# For deleting a todo we'll trigger a database [`delete`](http://www.rethinkdb.com/api/#py:writing_data-delete) 
-# on a `DELETE /todos/<todo_id>` request.
+# To delete a todo item we'll call a
+# [`delete`](http://www.rethinkdb.com/api/#py:writing_data-delete)
+# command on a `DELETE /todos/<todo_id>` request.
 @app.route("/todos/<string:todo_id>", methods=['DELETE'])
 def delete_todo(todo_id):
-    return jsonify(todo_table.get(todo_id).delete().run(g.rdb_conn))
+    return jsonify(r.table('todos').get(todo_id).delete().run(g.rdb_conn))
 
 @app.route("/")
 def show_todos():
@@ -126,12 +149,16 @@ if __name__ == "__main__":
 #
 # #### Managing connections: a connection per request ####
 #
-# The RethinkDB server doesn't use a thread-per-connnection approach so opening connections per request will not slow down your database.
+# The RethinkDB server doesn't use a thread-per-connnection approach
+# so opening connections per request will not slow down your database.
 # 
 # #### Fetching multiple rows: batched iterators ####
 #
-# When fetching multiple rows from a table, RethinkDB returns a batched iterator containing initially a subset of the complete result. 
-# Once the end of the current batch is reached, a new batch is retrieved from the server. From a coding point of view this is transparent:
+# When fetching multiple rows from a table, RethinkDB returns a
+# batched iterator initially containing a subset of the complete
+# result. Once the end of the current batch is reached, a new batch is
+# automatically retrieved from the server. From a coding point of view
+# this is transparent:
 #   
 #     for result in r.table('todos').run(g.rdb_conn):
 #         print result
@@ -139,7 +166,8 @@ if __name__ == "__main__":
 #    
 # #### `replace` vs `update` ####
 #
-# Both `replace` and `update` operations can be used to modify one or multiple rows. Their behavior is different: 
+# Both `replace` and `update` operations can be used to modify one or
+# multiple rows. Their behavior is different:
 #    
 # *   `replace` will completely replace the existing rows with new values
 # *   `update` will merge existing rows with the new values
