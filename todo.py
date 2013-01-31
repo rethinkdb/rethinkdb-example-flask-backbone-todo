@@ -1,8 +1,5 @@
-#
 # A demo web application in the spirit of [TodoMVC](http://addyosmani.github.com/todomvc/) showing how to use **RethinkDB as a backend for Flask applications**.
-#
 # For details about the complete stack, installation, and running the app see the [README](https://github.com/rethinkdb/rethinkdb-example-flask-backbone-todo).
-#
 import json
 import argparse
 
