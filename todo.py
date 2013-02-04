@@ -5,8 +5,9 @@
 # For details about the complete stack, installation, and running the
 # app see the
 # [README](https://github.com/rethinkdb/rethinkdb-example-flask-backbone-todo).
-import json
 import argparse
+import json
+import os
 
 from flask import Flask, g, jsonify, render_template, request
 from rethinkdb import r
@@ -15,8 +16,8 @@ from rethinkdb import r
 
 # We will use these settings later in the code to connect to the
 # RethinkDB server.
-RDB_HOST = 'localhost'
-RDB_PORT = 28015
+RDB_HOST =  os.environ.get('RDB_HOST') or 'localhost'
+RDB_PORT = os.environ.get('RDB_PORT') or 28015
 TODO_DB = 'todoapp'
 
 #### Setting up the app database
