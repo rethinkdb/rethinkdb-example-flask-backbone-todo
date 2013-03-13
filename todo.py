@@ -10,7 +10,7 @@ import json
 import os
 
 from flask import Flask, g, jsonify, render_template, request
-from rethinkdb import r
+import rethinkdb as r
 
 #### Connection details
 
