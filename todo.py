@@ -9,8 +9,10 @@ import argparse
 import json
 import os
 
-from flask import Flask, g, jsonify, render_template, request
+from flask import Flask, g, jsonify, render_template, request, abort
+
 import rethinkdb as r
+from rethinkdb.errors import RqlRuntimeError, RqlDriverError
 
 #### Connection details
 
@@ -30,10 +32,10 @@ TODO_DB = 'todoapp'
 def dbSetup():
     connection = r.connect(host=RDB_HOST, port=RDB_PORT)
     try:
-        connection.run(r.db_create(TODO_DB))
-        connection.run(r.db(TODO_DB).table_create('todos'))
+        r.db_create(TODO_DB).run(connection)
+        r.db(TODO_DB).table_create('todos').run(connection)
         print 'Database setup completed. Now run the app without --setup.'
-    except Exception:
+    except RqlRuntimeError:
         print 'App database already exists. Run the app without --setup.'
     finally:
         connection.close()
@@ -50,11 +52,17 @@ app.config.from_object(__name__)
 # [closing it](http://www.rethinkdb.com/api/#py:accessing_rql-close) respectively.
 @app.before_request
 def before_request():
-    g.rdb_conn = r.connect(host=RDB_HOST, port=RDB_PORT, db_name=TODO_DB)
+    try:
+        g.rdb_conn = r.connect(host=RDB_HOST, port=RDB_PORT, db=TODO_DB)
+    except RqlDriverError:
+        abort(503, "No database connection could be established.")
 
 @app.teardown_request
 def teardown_request(exception):
-    g.rdb_conn.close()
+    try:
+        g.rdb_conn.close()
+    except AttributeError:
+        pass
 
 
 #### Listing existing todos
