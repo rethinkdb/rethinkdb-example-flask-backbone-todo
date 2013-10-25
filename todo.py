@@ -26,9 +26,9 @@ TODO_DB = 'todoapp'
 
 # The app will use a table `todos` in the database specified by the
 # `TODO_DB` variable.  We'll create the database and table here using
-# [`db_create`](http://www.rethinkdb.com/api/#py:manipulating_databases-db_create)
+# [`db_create`](http://www.rethinkdb.com/api/python/db_create/)
 # and
-# [`table_create`](http://www.rethinkdb.com/api/#py:manipulating_tables-table_create) commands.
+# [`table_create`](http://www.rethinkdb.com/api/python/table_create/) commands.
 def dbSetup():
     connection = r.connect(host=RDB_HOST, port=RDB_PORT)
     try:
@@ -48,8 +48,8 @@ app.config.from_object(__name__)
 
 # The pattern we're using for managing database connections is to have **a connection per request**. 
 # We're using Flask's `@app.before_request` and `@app.teardown_request` for 
-# [opening a database connection](http://www.rethinkdb.com/api/#py:accessing_rql-connect) and 
-# [closing it](http://www.rethinkdb.com/api/#py:accessing_rql-close) respectively.
+# [opening a database connection](http://www.rethinkdb.com/api/python/connect/) and 
+# [closing it](http://www.rethinkdb.com/api/python/close/) respectively.
 @app.before_request
 def before_request():
     try:
@@ -68,7 +68,7 @@ def teardown_request(exception):
 #### Listing existing todos
 
 # To retrieve all existing tasks, we are using
-# [`r.table`](http://www.rethinkdb.com/api/#py:selecting_data-table)
+# [`r.table`](http://www.rethinkdb.com/api/python/table/)
 # command to query the database in response to a GET request from the
 # browser. When `table(table_name)` isn't followed by an additional
 # command, it returns all documents in the table.
@@ -84,7 +84,7 @@ def get_todos():
 
 # We will create a new todo in response to a POST request to `/todos`
 # with a JSON payload using
-# [`table.insert`](http://www.rethinkdb.com/api/#py:writing_data-insert).
+# [`table.insert`](http://www.rethinkdb.com/api/python/insert/).
 #
 # The `insert` operation returns a single object specifying the number
 # of successfully created objects and their corresponding IDs:
@@ -100,7 +100,7 @@ def new_todo():
 # Every new task gets assigned a unique ID. The browser can retrieve
 # a specific task by GETing `/todos/<todo_id>`. To query the database
 # for a single document by its ID, we use the
-# [`get`](http://www.rethinkdb.com/api/#py:selecting_data-get)
+# [`get`](http://www.rethinkdb.com/api/python/get/)
 # command.
 #
 # Using a task's ID will prove more useful when we decide to update
@@ -114,14 +114,14 @@ def get_todo(todo_id):
 
 # Updating a todo (editing it or marking it completed) is performed on
 # a `PUT` request.  To save the updated todo we'll do a
-# [`replace`](http://www.rethinkdb.com/api/#py:writing_data-replace).
+# [`replace`](http://www.rethinkdb.com/api/python/replace/).
 @app.route("/todos/<string:todo_id>", methods=['PUT'])
 def update_todo(todo_id):
     return jsonify(r.table('todos').get(todo_id).replace(request.json).run(g.rdb_conn))
 
 # If you'd like the update operation to happen as the result of a
 # `PATCH` request (carrying only the updated fields), you can use the
-# [`update`](http://www.rethinkdb.com/api/#py:writing_data-update)
+# [`update`](http://www.rethinkdb.com/api/python/update/)
 # command, which will merge the JSON object stored in the database
 # with the new one.
 @app.route("/todos/<string:todo_id>", methods=['PATCH'])
@@ -132,7 +132,7 @@ def patch_todo(todo_id):
 #### Deleting a task
 
 # To delete a todo item we'll call a
-# [`delete`](http://www.rethinkdb.com/api/#py:writing_data-delete)
+# [`delete`](http://www.rethinkdb.com/api/python/delete/)
 # command on a `DELETE /todos/<todo_id>` request.
 @app.route("/todos/<string:todo_id>", methods=['DELETE'])
 def delete_todo(todo_id):
