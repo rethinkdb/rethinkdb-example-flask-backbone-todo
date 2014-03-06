@@ -88,6 +88,7 @@ def get_todos():
 #
 # The `insert` operation returns a single object specifying the number
 # of successfully created objects and their corresponding IDs:
+# 
 # ```
 # {
 #   "inserted": 1,
