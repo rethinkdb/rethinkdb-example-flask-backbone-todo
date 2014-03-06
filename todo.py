@@ -88,7 +88,16 @@ def get_todos():
 #
 # The `insert` operation returns a single object specifying the number
 # of successfully created objects and their corresponding IDs:
-# `{ "inserted": 1, "errors": 0, "generated_keys": ["773666ac-841a-44dc-97b7-b6f3931e9b9f"] }`
+# ```
+# {
+#   "inserted": 1,
+#   "errors": 0,
+#   "generated_keys": [
+#     "773666ac-841a-44dc-97b7-b6f3931e9b9f"
+#   ]
+# }
+# ```
+
 @app.route("/todos", methods=['POST'])
 def new_todo():
     inserted = r.table('todos').insert(request.json).run(g.rdb_conn)
