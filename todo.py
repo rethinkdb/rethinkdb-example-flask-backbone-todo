@@ -127,7 +127,8 @@ def get_todo(todo_id):
 # [`replace`](http://www.rethinkdb.com/api/python/replace/).
 @app.route("/todos/<string:todo_id>", methods=['PUT'])
 def update_todo(todo_id):
-    return jsonify(r.table('todos').get(todo_id).replace(request.json).run(g.rdb_conn))
+    return jsonify(r.table('todos').get(todo_id).replace(request.json)
+                    .run(g.rdb_conn))
 
 # If you'd like the update operation to happen as the result of a
 # `PATCH` request (carrying only the updated fields), you can use the
@@ -136,7 +137,8 @@ def update_todo(todo_id):
 # with the new one.
 @app.route("/todos/<string:todo_id>", methods=['PATCH'])
 def patch_todo(todo_id):
-    return jsonify(r.table('todos').get(todo_id).update(request.json).run(g.rdb_conn))
+    return jsonify(r.table('todos').get(todo_id).update(request.json)
+                    .run(g.rdb_conn))
 
 
 #### Deleting a task
