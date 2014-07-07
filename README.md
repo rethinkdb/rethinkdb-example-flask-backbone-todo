@@ -27,9 +27,19 @@ pip install Flask
 pip install rethinkdb
 ```
 
+# Start RethinkDB #
+
+Make sure you have RethinkDB running.  
+If you are not running RethinkDB on your local machine with the default settings,
+update the `todo.py` file on lines 21 and 22.
+
 _Note_: If you don't have RethinkDB installed, you can follow [these instructions to get it up and running](http://www.rethinkdb.com/docs/install/). 
 
+
+
 # Running the application #
+
+
 
 Firstly we'll need to create the database `todoapp` and the table used by this app: `todos`. You can
 do this by running:
