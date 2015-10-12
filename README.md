@@ -57,10 +57,6 @@ python todo.py
 Then open a browser: <http://localhost:5000/>.
 
 
-# Annotated Source Code #
-
-After checking out the code, you can also read the annotated source [here](http://www.rethinkdb.com/docs/examples/flask-backbone-todo/)
-
 # License #
 
 This demo application is licensed under the MIT license: <http://opensource.org/licenses/mit-license.php>
